@@ -3,8 +3,8 @@ import { useEffect, useMemo, useRef } from 'react'
 const DESKTOP_QUERY = '(min-width: 769px) and (pointer: fine)'
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
 const SCROLL_SPEED = 1.18
-const WHEEL_SNAP_DELAY = 240
-const WHEEL_SMOOTHING_TIME = 90
+const WHEEL_SNAP_DELAY = 320
+const WHEEL_SMOOTHING_TIME = 150
 const WHEEL_SETTLE_THRESHOLD = 1
 const PERSPECTIVE_VISIBILITY_RANGE = 1.6
 
