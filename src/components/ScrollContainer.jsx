@@ -3,12 +3,9 @@ import { useEffect, useMemo, useRef } from 'react'
 const DESKTOP_QUERY = '(min-width: 769px) and (pointer: fine)'
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
 const SCROLL_SPEED = 1.18
-const WHEEL_MULTIPLIER = 1.4
-const SCROLL_SETTLE_DELAY = 240
+const WHEEL_SNAP_DELAY = 240
 const WHEEL_SMOOTHING_TIME = 90
-const WHEEL_SETTLE_THRESHOLD = 0.4
-const PANEL_ALIGNMENT_THRESHOLD = 1
-const MAX_WHEEL_STEP_RATIO = 0.85
+const WHEEL_SETTLE_THRESHOLD = 1
 const PERSPECTIVE_VISIBILITY_RANGE = 1.6
 
 function isEditableElement(element) {
@@ -49,10 +46,11 @@ function ScrollContainer({ children }) {
     const reducedMotionQuery = window.matchMedia(REDUCED_MOTION_QUERY)
     let animationFrameId = null
     let wheelAnimationFrameId = null
-    let scrollSettleTimeoutId = null
+    let wheelSnapTimeoutId = null
     let wheelTargetTop = window.scrollY
     let previousWheelFrameTime = null
-    let shouldSnapAfterWheel = false
+    let wheelGestureStartIndex = null
+    let wheelGestureDirection = 0
     let needsMeasurement = true
     let stageTop = 0
     let viewportWidth = window.innerWidth
@@ -162,8 +160,14 @@ function ScrollContainer({ children }) {
         wheelAnimationFrameId = null
       }
 
+      if (wheelSnapTimeoutId !== null) {
+        window.clearTimeout(wheelSnapTimeoutId)
+        wheelSnapTimeoutId = null
+      }
+
       previousWheelFrameTime = null
-      shouldSnapAfterWheel = false
+      wheelGestureStartIndex = null
+      wheelGestureDirection = 0
       wheelTargetTop = window.scrollY
     }
 
@@ -175,33 +179,6 @@ function ScrollContainer({ children }) {
       window.scrollTo({ top: targetTop, behavior: 'smooth' })
     }
 
-    const snapToNearestPanel = () => {
-      scrollSettleTimeoutId = null
-      if (!desktopQuery.matches) return
-      if (needsMeasurement) measureLayout()
-
-      const virtualLeft = getVirtualLeft()
-      const nearestIndex = getNearestPanelIndex(virtualLeft)
-      const nearestOffset = panelOffsets[nearestIndex] ?? 0
-
-      if (Math.abs(nearestOffset - virtualLeft) <= PANEL_ALIGNMENT_THRESHOLD) return
-      scrollToPanel(nearestIndex)
-    }
-
-    const scheduleSettledSnap = () => {
-      if (!desktopQuery.matches) return
-      if (scrollSettleTimeoutId !== null) window.clearTimeout(scrollSettleTimeoutId)
-
-      scrollSettleTimeoutId = window.setTimeout(() => {
-        scrollSettleTimeoutId = null
-        if (wheelAnimationFrameId === null) {
-          snapToNearestPanel()
-        } else {
-          shouldSnapAfterWheel = true
-        }
-      }, SCROLL_SETTLE_DELAY)
-    }
-
     const animateWheelScroll = (timestamp) => {
       const currentTop = window.scrollY
       const distance = wheelTargetTop - currentTop
@@ -210,11 +187,6 @@ function ScrollContainer({ children }) {
         window.scrollTo({ top: wheelTargetTop, behavior: 'auto' })
         wheelAnimationFrameId = null
         previousWheelFrameTime = null
-
-        if (shouldSnapAfterWheel) {
-          shouldSnapAfterWheel = false
-          snapToNearestPanel()
-        }
         return
       }
 
@@ -242,20 +214,21 @@ function ScrollContainer({ children }) {
       if (event.target?.closest?.('.portfolio-assistant')) return
 
       event.preventDefault()
-      if (scrollSettleTimeoutId !== null) window.clearTimeout(scrollSettleTimeoutId)
-      shouldSnapAfterWheel = false
+      if (wheelSnapTimeoutId !== null) window.clearTimeout(wheelSnapTimeoutId)
 
-      if (wheelAnimationFrameId === null) wheelTargetTop = window.scrollY
+      const wheelDelta = getNormalizedWheelDelta(event)
+      if (wheelDelta === 0) return
 
-      const maxWheelStep = viewportWidth * MAX_WHEEL_STEP_RATIO
-      const wheelDistance = getNormalizedWheelDelta(event) * WHEEL_MULTIPLIER
-      const scrollAmount = Math.max(-maxWheelStep, Math.min(maxWheelStep, wheelDistance))
-      const targetVirtualLeft = Math.max(0, Math.min(
-        maxHorizontalScroll,
-        (wheelTargetTop - stageTop) * SCROLL_SPEED + scrollAmount,
+      if (wheelGestureStartIndex === null) {
+        wheelGestureStartIndex = getNearestPanelIndex()
+      }
+
+      wheelGestureDirection = Math.sign(wheelDelta)
+      const targetIndex = Math.max(0, Math.min(
+        panelOffsets.length - 1,
+        wheelGestureStartIndex + wheelGestureDirection,
       ))
-
-      wheelTargetTop = stageTop + targetVirtualLeft / SCROLL_SPEED
+      wheelTargetTop = stageTop + (panelOffsets[targetIndex] ?? 0) / SCROLL_SPEED
 
       if (reducedMotionQuery.matches) {
         window.scrollTo({ top: wheelTargetTop, behavior: 'auto' })
@@ -263,12 +236,14 @@ function ScrollContainer({ children }) {
         startWheelAnimation()
       }
 
-      scheduleSettledSnap()
-    }
-
-    const handleScroll = () => {
-      scheduleUpdate()
-      scheduleSettledSnap()
+      wheelSnapTimeoutId = window.setTimeout(() => {
+        wheelSnapTimeoutId = null
+        const snapIndex = Math.max(0, Math.min(
+          panelOffsets.length - 1,
+          wheelGestureStartIndex + wheelGestureDirection,
+        ))
+        scrollToPanel(snapIndex)
+      }, WHEEL_SNAP_DELAY)
     }
 
     const handleKeyDown = (event) => {
@@ -291,7 +266,7 @@ function ScrollContainer({ children }) {
     }
 
     updateLayout()
-    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('scroll', scheduleUpdate, { passive: true })
     window.addEventListener('wheel', handleWheel, { passive: false })
     window.addEventListener('resize', scheduleMeasurement)
     window.addEventListener('keydown', handleKeyDown)
@@ -304,10 +279,10 @@ function ScrollContainer({ children }) {
     return () => {
       if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId)
       if (wheelAnimationFrameId !== null) window.cancelAnimationFrame(wheelAnimationFrameId)
-      if (scrollSettleTimeoutId !== null) window.clearTimeout(scrollSettleTimeoutId)
+      if (wheelSnapTimeoutId !== null) window.clearTimeout(wheelSnapTimeoutId)
       clearPerspective()
       resizeObserver.disconnect()
-      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('scroll', scheduleUpdate)
       window.removeEventListener('wheel', handleWheel)
       window.removeEventListener('resize', scheduleMeasurement)
       window.removeEventListener('keydown', handleKeyDown)
