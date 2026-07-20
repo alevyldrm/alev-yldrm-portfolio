@@ -4,7 +4,9 @@ const DESKTOP_QUERY = '(min-width: 769px) and (pointer: fine)'
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
 const SCROLL_SPEED = 1.18
 const WHEEL_MULTIPLIER = 1.4
-const WHEEL_SNAP_DELAY = 220
+const WHEEL_SNAP_DELAY = 240
+const WHEEL_SMOOTHING_TIME = 90
+const WHEEL_SETTLE_THRESHOLD = 0.4
 const MAX_WHEEL_STEP_RATIO = 0.85
 const PERSPECTIVE_VISIBILITY_RANGE = 1.6
 
@@ -45,7 +47,11 @@ function ScrollContainer({ children }) {
     const desktopQuery = window.matchMedia(DESKTOP_QUERY)
     const reducedMotionQuery = window.matchMedia(REDUCED_MOTION_QUERY)
     let animationFrameId = null
+    let wheelAnimationFrameId = null
     let wheelSnapTimeoutId = null
+    let wheelTargetTop = window.scrollY
+    let previousWheelFrameTime = null
+    let shouldSnapAfterWheel = false
     let needsMeasurement = true
     let stageTop = 0
     let viewportWidth = window.innerWidth
@@ -149,8 +155,20 @@ function ScrollContainer({ children }) {
       scheduleUpdate()
     }
 
+    const cancelWheelAnimation = () => {
+      if (wheelAnimationFrameId !== null) {
+        window.cancelAnimationFrame(wheelAnimationFrameId)
+        wheelAnimationFrameId = null
+      }
+
+      previousWheelFrameTime = null
+      shouldSnapAfterWheel = false
+      wheelTargetTop = window.scrollY
+    }
+
     const scrollToPanel = (panelIndex) => {
       if (needsMeasurement) measureLayout()
+      cancelWheelAnimation()
       const nextIndex = Math.max(0, Math.min(panelOffsets.length - 1, panelIndex))
       const targetTop = stageTop + (panelOffsets[nextIndex] ?? 0) / SCROLL_SPEED
       window.scrollTo({ top: targetTop, behavior: 'smooth' })
@@ -161,24 +179,75 @@ function ScrollContainer({ children }) {
       if (desktopQuery.matches) scrollToPanel(getNearestPanelIndex())
     }
 
+    const animateWheelScroll = (timestamp) => {
+      const currentTop = window.scrollY
+      const distance = wheelTargetTop - currentTop
+
+      if (Math.abs(distance) <= WHEEL_SETTLE_THRESHOLD) {
+        window.scrollTo({ top: wheelTargetTop, behavior: 'auto' })
+        wheelAnimationFrameId = null
+        previousWheelFrameTime = null
+
+        if (shouldSnapAfterWheel) {
+          shouldSnapAfterWheel = false
+          snapToNearestPanel()
+        }
+        return
+      }
+
+      const elapsed = previousWheelFrameTime === null
+        ? 1000 / 60
+        : Math.min(34, timestamp - previousWheelFrameTime)
+      const smoothing = 1 - Math.exp(-elapsed / WHEEL_SMOOTHING_TIME)
+
+      previousWheelFrameTime = timestamp
+      window.scrollTo({
+        top: currentTop + distance * smoothing,
+        behavior: 'auto',
+      })
+      wheelAnimationFrameId = window.requestAnimationFrame(animateWheelScroll)
+    }
+
+    const startWheelAnimation = () => {
+      if (wheelAnimationFrameId !== null) return
+      previousWheelFrameTime = null
+      wheelAnimationFrameId = window.requestAnimationFrame(animateWheelScroll)
+    }
+
     const handleWheel = (event) => {
       if (!desktopQuery.matches || event.ctrlKey) return
       if (event.target?.closest?.('.portfolio-assistant')) return
 
       event.preventDefault()
       if (wheelSnapTimeoutId !== null) window.clearTimeout(wheelSnapTimeoutId)
+      shouldSnapAfterWheel = false
+
+      if (wheelAnimationFrameId === null) wheelTargetTop = window.scrollY
 
       const maxWheelStep = viewportWidth * MAX_WHEEL_STEP_RATIO
       const wheelDistance = getNormalizedWheelDelta(event) * WHEEL_MULTIPLIER
       const scrollAmount = Math.max(-maxWheelStep, Math.min(maxWheelStep, wheelDistance))
-      const targetVirtualLeft = Math.max(0, Math.min(maxHorizontalScroll, getVirtualLeft() + scrollAmount))
+      const targetVirtualLeft = Math.max(0, Math.min(
+        maxHorizontalScroll,
+        (wheelTargetTop - stageTop) * SCROLL_SPEED + scrollAmount,
+      ))
 
-      window.scrollTo({
-        top: stageTop + targetVirtualLeft / SCROLL_SPEED,
-        behavior: 'auto',
-      })
+      wheelTargetTop = stageTop + targetVirtualLeft / SCROLL_SPEED
 
-      wheelSnapTimeoutId = window.setTimeout(snapToNearestPanel, WHEEL_SNAP_DELAY)
+      if (reducedMotionQuery.matches) {
+        window.scrollTo({ top: wheelTargetTop, behavior: 'auto' })
+      } else {
+        startWheelAnimation()
+      }
+
+      wheelSnapTimeoutId = window.setTimeout(() => {
+        wheelSnapTimeoutId = null
+        if (wheelAnimationFrameId === null) {
+          snapToNearestPanel()
+        } else {
+          shouldSnapAfterWheel = true
+        }
+      }, WHEEL_SNAP_DELAY)
     }
 
     const handleKeyDown = (event) => {
@@ -213,6 +282,7 @@ function ScrollContainer({ children }) {
 
     return () => {
       if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId)
+      if (wheelAnimationFrameId !== null) window.cancelAnimationFrame(wheelAnimationFrameId)
       if (wheelSnapTimeoutId !== null) window.clearTimeout(wheelSnapTimeoutId)
       clearPerspective()
       resizeObserver.disconnect()
