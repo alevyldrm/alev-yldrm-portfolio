@@ -4,9 +4,10 @@ const DESKTOP_QUERY = '(min-width: 769px) and (pointer: fine)'
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
 const SCROLL_SPEED = 1.18
 const WHEEL_MULTIPLIER = 1.4
-const WHEEL_SNAP_DELAY = 240
+const SCROLL_SETTLE_DELAY = 240
 const WHEEL_SMOOTHING_TIME = 90
 const WHEEL_SETTLE_THRESHOLD = 0.4
+const PANEL_ALIGNMENT_THRESHOLD = 1
 const MAX_WHEEL_STEP_RATIO = 0.85
 const PERSPECTIVE_VISIBILITY_RANGE = 1.6
 
@@ -48,7 +49,7 @@ function ScrollContainer({ children }) {
     const reducedMotionQuery = window.matchMedia(REDUCED_MOTION_QUERY)
     let animationFrameId = null
     let wheelAnimationFrameId = null
-    let wheelSnapTimeoutId = null
+    let scrollSettleTimeoutId = null
     let wheelTargetTop = window.scrollY
     let previousWheelFrameTime = null
     let shouldSnapAfterWheel = false
@@ -175,8 +176,30 @@ function ScrollContainer({ children }) {
     }
 
     const snapToNearestPanel = () => {
-      wheelSnapTimeoutId = null
-      if (desktopQuery.matches) scrollToPanel(getNearestPanelIndex())
+      scrollSettleTimeoutId = null
+      if (!desktopQuery.matches) return
+      if (needsMeasurement) measureLayout()
+
+      const virtualLeft = getVirtualLeft()
+      const nearestIndex = getNearestPanelIndex(virtualLeft)
+      const nearestOffset = panelOffsets[nearestIndex] ?? 0
+
+      if (Math.abs(nearestOffset - virtualLeft) <= PANEL_ALIGNMENT_THRESHOLD) return
+      scrollToPanel(nearestIndex)
+    }
+
+    const scheduleSettledSnap = () => {
+      if (!desktopQuery.matches) return
+      if (scrollSettleTimeoutId !== null) window.clearTimeout(scrollSettleTimeoutId)
+
+      scrollSettleTimeoutId = window.setTimeout(() => {
+        scrollSettleTimeoutId = null
+        if (wheelAnimationFrameId === null) {
+          snapToNearestPanel()
+        } else {
+          shouldSnapAfterWheel = true
+        }
+      }, SCROLL_SETTLE_DELAY)
     }
 
     const animateWheelScroll = (timestamp) => {
@@ -219,7 +242,7 @@ function ScrollContainer({ children }) {
       if (event.target?.closest?.('.portfolio-assistant')) return
 
       event.preventDefault()
-      if (wheelSnapTimeoutId !== null) window.clearTimeout(wheelSnapTimeoutId)
+      if (scrollSettleTimeoutId !== null) window.clearTimeout(scrollSettleTimeoutId)
       shouldSnapAfterWheel = false
 
       if (wheelAnimationFrameId === null) wheelTargetTop = window.scrollY
@@ -240,14 +263,12 @@ function ScrollContainer({ children }) {
         startWheelAnimation()
       }
 
-      wheelSnapTimeoutId = window.setTimeout(() => {
-        wheelSnapTimeoutId = null
-        if (wheelAnimationFrameId === null) {
-          snapToNearestPanel()
-        } else {
-          shouldSnapAfterWheel = true
-        }
-      }, WHEEL_SNAP_DELAY)
+      scheduleSettledSnap()
+    }
+
+    const handleScroll = () => {
+      scheduleUpdate()
+      scheduleSettledSnap()
     }
 
     const handleKeyDown = (event) => {
@@ -270,7 +291,7 @@ function ScrollContainer({ children }) {
     }
 
     updateLayout()
-    window.addEventListener('scroll', scheduleUpdate, { passive: true })
+    window.addEventListener('scroll', handleScroll, { passive: true })
     window.addEventListener('wheel', handleWheel, { passive: false })
     window.addEventListener('resize', scheduleMeasurement)
     window.addEventListener('keydown', handleKeyDown)
@@ -283,10 +304,10 @@ function ScrollContainer({ children }) {
     return () => {
       if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId)
       if (wheelAnimationFrameId !== null) window.cancelAnimationFrame(wheelAnimationFrameId)
-      if (wheelSnapTimeoutId !== null) window.clearTimeout(wheelSnapTimeoutId)
+      if (scrollSettleTimeoutId !== null) window.clearTimeout(scrollSettleTimeoutId)
       clearPerspective()
       resizeObserver.disconnect()
-      window.removeEventListener('scroll', scheduleUpdate)
+      window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('wheel', handleWheel)
       window.removeEventListener('resize', scheduleMeasurement)
       window.removeEventListener('keydown', handleKeyDown)
