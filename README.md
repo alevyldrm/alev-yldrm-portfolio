@@ -1,16 +1,16 @@
-# Alev Yildirim Portfolio
+# Alev Yıldırım Portfolio
 
-React ve Vite ile gelistirilmis, yatay kaydirma deneyimine sahip kisisel frontend developer portfolio projesi.
+React ve Vite ile geliştirilmiş, yatay kaydırma deneyimine sahip kişisel frontend developer portfolyo projesi.
 
-## Ozellikler
+## Özellikler
 
-- Desktop cihazlarda dikey scroll ile kontrol edilen yatay section akisi
-- Mobil cihazlarda responsive dikey yerlesim
-- WebGL tabanli Ferrofluid arka plan efekti
-- Etkilesimli teknik yetenekler ve proje sunumu
-- MP3 destekli plak oynatici
+- Masaüstü cihazlarda dikey scroll ile kontrol edilen yatay bölüm akışı
+- Mobil cihazlarda responsive dikey yerleşim
+- WebGL tabanlı Ferrofluid arka plan efekti
+- Etkileşimli teknik yetenekler ve proje sunumu
+- MP3 destekli plak oynatıcı
 - Gemini destekli Portfolio Assistant
-- Netlify Functions ile sunucu tarafinda guvenli AI entegrasyonu
+- Netlify Functions ile sunucu tarafında güvenli AI entegrasyonu
 
 ## Teknolojiler
 
@@ -28,14 +28,14 @@ npm install
 npm run dev
 ```
 
-AI asistani yerelde kullanmak icin proje kokunde `.env.local` dosyasi olusturun:
+AI asistanını yerelde kullanmak için proje kökünde `.env.local` dosyası oluşturun:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
-Gercek API anahtarlari GitHub'a gonderilmemelidir. `.env.local` ve diger yerel environment dosyalari `.gitignore` tarafindan dislanir.
+Gerçek API anahtarları GitHub'a gönderilmemelidir. `.env.local` ve diğer yerel ortam dosyaları `.gitignore` tarafından dışlanır.
 
 ## Komutlar
 
@@ -46,6 +46,6 @@ npm run build
 npm run preview
 ```
 
-## Yayinlama
+## Yayınlama
 
-Proje Netlify icin yapilandirilmistir. Build ayarlari `netlify.toml` dosyasinda, Portfolio Assistant endpoint'i ise `netlify/functions/portfolio-chat.js` dosyasinda bulunur.
+Proje Netlify için yapılandırılmıştır. Build ayarları `netlify.toml` dosyasında, Portfolio Assistant endpoint'i ise `netlify/functions/portfolio-chat.js` dosyasında bulunur.
