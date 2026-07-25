@@ -15,10 +15,63 @@
         margin: 0;
         background: #080b09;
       }
+
+      #initial-loader {
+        position: fixed;
+        z-index: 9999;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 1.5rem;
+        overflow: hidden;
+        color: #e6e8e5;
+        background:
+          radial-gradient(ellipse at 50% 46%, rgba(111, 129, 110, .18), transparent 30%),
+          radial-gradient(ellipse at 50% 58%, rgba(184, 243, 107, .05), transparent 24%),
+          linear-gradient(125deg, #070907, #101610 50%, #070907);
+        box-sizing: border-box;
+      }
+
+      #initial-loader-progress {
+        width: min(calc(100vw - 3rem), 44rem);
+      }
+
+      #initial-loader-labels {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        color: #8c948d;
+        font: 700 clamp(.7rem, 1vw, .82rem)/1 ui-monospace, monospace;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+      }
+
+      #initial-loader-labels strong {
+        min-width: 3ch;
+        color: #e4e8e2;
+        font-size: clamp(.85rem, 1.2vw, 1rem);
+        text-align: right;
+      }
+
+      #initial-loader-line {
+        height: 3px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .11);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, .025);
+      }
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-loader" aria-hidden="true">
+        <div id="initial-loader-progress">
+          <div id="initial-loader-labels"><span>Yükleniyor...</span><strong>000</strong></div>
+          <div id="initial-loader-line"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
