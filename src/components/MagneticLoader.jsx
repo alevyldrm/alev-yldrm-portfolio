@@ -44,8 +44,8 @@ function MagneticLoader({ onComplete }) {
       role="status"
       aria-live="polite"
       aria-label={`Portfolio hazırlanıyor, yüzde ${progress}`}
-      exit={{ opacity: 0, filter: 'blur(10px)', scale: 1.01 }}
-      transition={{ duration: .72, ease: [0.76, 0, 0.24, 1] }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: .45, ease: [0.76, 0, 0.24, 1] }}
     >
       <div className="magnetic-ambient" aria-hidden="true" />
       <div className="magnetic-grain" aria-hidden="true" />
