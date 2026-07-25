@@ -1,5 +1,4 @@
-import { useCallback, useState } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { useCallback, useEffect, useState } from 'react'
 import Navbar from './components/Navbar'
 import MagneticLoader from './components/MagneticLoader'
 import PerspectiveSection from './components/PerspectiveSection'
@@ -15,18 +14,30 @@ import Footer from './sections/Footer'
 const sections = [Hero, About, Skills, Tools, Projects, Footer]
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true)
+  const [loaderFinished, setLoaderFinished] = useState(false)
+  const [visualReady, setVisualReady] = useState(false)
+  const isLoading = !loaderFinished || !visualReady
 
   const finishLoading = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' })
-    setIsLoading(false)
+    setLoaderFinished(true)
   }, [])
+
+  const handleVisualReady = useCallback(() => {
+    setVisualReady(true)
+  }, [])
+
+  useEffect(() => {
+    const fallbackTimer = window.setTimeout(handleVisualReady, 4000)
+    return () => window.clearTimeout(fallbackTimer)
+  }, [handleVisualReady])
+
+  useEffect(() => {
+    if (!isLoading) window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [isLoading])
 
   return (
     <>
-      <AnimatePresence>
-        {isLoading && <MagneticLoader key="magnetic-loader" onComplete={finishLoading} />}
-      </AnimatePresence>
+      {isLoading && <MagneticLoader onComplete={finishLoading} />}
       <div className={`site-shell${isLoading ? ' site-is-loading' : ''}`} aria-busy={isLoading}>
         <Navbar />
         <ScrollContainer>
@@ -36,6 +47,7 @@ function App() {
               index={index}
               totalSections={sections.length}
               disablePerspective={index === 0 || index === sections.length - 1}
+              onVisualReady={index === 0 ? handleVisualReady : undefined}
             >
               <Section />
             </PerspectiveSection>

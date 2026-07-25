@@ -3,7 +3,13 @@ import { lazy, Suspense } from 'react'
 const Ferrofluid = lazy(() => import('./Ferrofluid'))
 const FERROFLUID_COLORS = ['#385328', '#789e47', '#b8f36b']
 
-function PerspectiveSection({ index, totalSections, disablePerspective = false, children }) {
+function PerspectiveSection({
+  index,
+  totalSections,
+  disablePerspective = false,
+  onVisualReady,
+  children,
+}) {
   return (
     <div
       className="perspective-section panel"
@@ -18,6 +24,7 @@ function PerspectiveSection({ index, totalSections, disablePerspective = false, 
         <Suspense fallback={null}>
           <Ferrofluid
             className="section-ferrofluid"
+            onReady={onVisualReady}
             colors={FERROFLUID_COLORS}
             speed={0.08}
             scale={1.9}

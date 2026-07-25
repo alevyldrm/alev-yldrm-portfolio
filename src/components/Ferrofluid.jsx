@@ -187,6 +187,7 @@ function Ferrofluid({
   mouseDampening = 0.15,
   paused = false,
   dpr,
+  onReady,
 }) {
   const containerRef = useRef(null)
 
@@ -239,6 +240,7 @@ function Ferrofluid({
     const geometry = new Triangle(gl)
     const mesh = new Mesh(gl, { geometry, program })
     let frameId = null
+    let hasReportedReady = false
     let lastTime = 0
     let isIntersecting = false
     let isDocumentVisible = !document.hidden
@@ -255,6 +257,10 @@ function Ferrofluid({
         uniforms.iMouse.value = [...mouseTarget]
       }
       renderer.render({ scene: mesh })
+      if (!hasReportedReady) {
+        hasReportedReady = true
+        onReady?.()
+      }
     }
 
     const handlePointerMove = (event) => {
@@ -324,7 +330,7 @@ function Ferrofluid({
       program.remove?.()
       renderer.destroy?.()
     }
-  }, [colors, dpr, flowDirection, fluidity, glow, mouseDampening, mouseInteraction, mouseRadius, mouseStrength, opacity, paused, rimWidth, scale, sharpness, shimmer, speed, turbulence])
+  }, [colors, dpr, flowDirection, fluidity, glow, mouseDampening, mouseInteraction, mouseRadius, mouseStrength, onReady, opacity, paused, rimWidth, scale, sharpness, shimmer, speed, turbulence])
 
   return <div ref={containerRef} className={`ferrofluid-container ${className}`.trim()} aria-hidden="true" />
 }
