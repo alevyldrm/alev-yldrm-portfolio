@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react'
-import { AnimatePresence } from 'framer-motion'
 import Navbar from './components/Navbar'
 import MagneticLoader from './components/MagneticLoader'
 import PerspectiveSection from './components/PerspectiveSection'
@@ -24,9 +23,7 @@ function App() {
 
   return (
     <>
-      <AnimatePresence>
-        {isLoading && <MagneticLoader key="magnetic-loader" onComplete={finishLoading} />}
-      </AnimatePresence>
+      {isLoading && <MagneticLoader onComplete={finishLoading} />}
       <div className={`site-shell${isLoading ? ' site-is-loading' : ''}`} aria-busy={isLoading}>
         <Navbar />
         <ScrollContainer>

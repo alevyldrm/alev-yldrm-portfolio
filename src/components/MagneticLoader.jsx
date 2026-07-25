@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
 
 function MagneticLoader({ onComplete }) {
   const [progress, setProgress] = useState(0)
@@ -39,13 +38,11 @@ function MagneticLoader({ onComplete }) {
   }, [onComplete])
 
   return (
-    <motion.div
+    <div
       className={`magnetic-loader${isComplete ? ' is-complete' : ''}`}
       role="status"
       aria-live="polite"
       aria-label={`Portfolio hazırlanıyor, yüzde ${progress}`}
-      exit={{ opacity: 0 }}
-      transition={{ duration: .45, ease: [0.76, 0, 0.24, 1] }}
     >
       <div className="magnetic-ambient" aria-hidden="true" />
       <div className="magnetic-grain" aria-hidden="true" />
@@ -54,7 +51,7 @@ function MagneticLoader({ onComplete }) {
         <div className="magnetic-labels"><span>Yükleniyor...</span><strong>{String(progress).padStart(3, '0')}</strong></div>
         <div className="magnetic-line" aria-hidden="true"><i style={{ transform: `scaleX(${progress / 100})` }} /></div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
