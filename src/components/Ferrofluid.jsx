@@ -240,12 +240,25 @@ function Ferrofluid({
     const geometry = new Triangle(gl)
     const mesh = new Mesh(gl, { geometry, program })
     let frameId = null
+    let readyFrameId = null
+    let renderedFrames = 0
     let hasReportedReady = false
     let lastTime = 0
     let isIntersecting = false
     let isDocumentVisible = !document.hidden
     let containerRect = container.getBoundingClientRect()
     const mouseTarget = [0, 0]
+
+    const revealAfterPaint = () => {
+      if (hasReportedReady) return
+
+      hasReportedReady = true
+      container.classList.add('is-ready')
+      readyFrameId = window.requestAnimationFrame(() => {
+        readyFrameId = null
+        onReady?.()
+      })
+    }
 
     const resize = () => {
       containerRect = container.getBoundingClientRect()
@@ -257,10 +270,7 @@ function Ferrofluid({
         uniforms.iMouse.value = [...mouseTarget]
       }
       renderer.render({ scene: mesh })
-      if (!hasReportedReady) {
-        hasReportedReady = true
-        onReady?.()
-      }
+      if (paused || reducedMotion) revealAfterPaint()
     }
 
     const handlePointerMove = (event) => {
@@ -284,6 +294,8 @@ function Ferrofluid({
       uniforms.iMouse.value[1] += (mouseTarget[1] - uniforms.iMouse.value[1]) * factor
 
       renderer.render({ scene: mesh })
+      renderedFrames += 1
+      if (renderedFrames >= 2) revealAfterPaint()
       frameId = window.requestAnimationFrame(render)
     }
 
@@ -321,6 +333,7 @@ function Ferrofluid({
 
     return () => {
       if (frameId !== null) window.cancelAnimationFrame(frameId)
+      if (readyFrameId !== null) window.cancelAnimationFrame(readyFrameId)
       resizeObserver.disconnect()
       visibilityObserver.disconnect()
       document.removeEventListener('visibilitychange', handleDocumentVisibility)
