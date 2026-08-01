@@ -253,7 +253,6 @@ function Ferrofluid({
       if (hasReportedReady) return
 
       hasReportedReady = true
-      container.classList.add('is-ready')
       readyFrameId = window.requestAnimationFrame(() => {
         readyFrameId = null
         onReady?.()

@@ -3,11 +3,7 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  visibility: hidden;
-}
-
-.ferrofluid-container.is-ready {
-  visibility: visible;
+  background: transparent;
 }
 
 .ferrofluid-container canvas {
