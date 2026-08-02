@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { HiArrowUp, HiXMark } from 'react-icons/hi2'
 
 const ENDPOINT = '/.netlify/functions/portfolio-chat'
@@ -61,11 +61,21 @@ function PortfolioAssistant() {
   const [messages, setMessages] = useState([INITIAL_MESSAGE])
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const messagesEndRef = useRef(null)
+  const messagesRef = useRef(null)
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+
+    document.body.classList.add('assistant-is-open')
+    return () => document.body.classList.remove('assistant-is-open')
+  }, [isOpen])
 
   const scrollToLatest = () => {
     window.requestAnimationFrame(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      const container = messagesRef.current
+      if (!container) return
+
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
     })
   }
 
@@ -130,7 +140,7 @@ function PortfolioAssistant() {
             </button>
           </header>
 
-          <div className="assistant-messages" aria-live="polite" aria-busy={isSending}>
+          <div ref={messagesRef} className="assistant-messages" aria-live="polite" aria-busy={isSending}>
             {messages.map((item, index) => (
               <div className={`assistant-message is-${item.role}${item.isError ? ' is-error' : ''}`} key={`${item.role}-${index}`}>
                 <span>{item.role === 'assistant' ? 'AY.AI' : 'SEN'}</span>
@@ -144,7 +154,6 @@ function PortfolioAssistant() {
                 <span>AY.AI</span><p><i /><i /><i /></p>
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           {messages.length === 1 && (

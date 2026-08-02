@@ -30,6 +30,8 @@ function ProjectMockup({ cover, theme, name, demo }) {
         <img
           className="project-cover"
           src={cover}
+          width={theme === 'commerce' ? 1888 : 1912}
+          height={theme === 'commerce' ? 850 : 876}
           alt={`${name} proje ekran görüntüsü`}
           loading="lazy"
           decoding="async"
