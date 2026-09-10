@@ -4,7 +4,7 @@ import { HiOutlineMail } from 'react-icons/hi'
 const links = [
   { label: 'GitHub', href: 'https://github.com/alevyldrm', icon: FaGithub, tone: 'github' },
   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/alevyldrm/', icon: FaLinkedinIn, tone: 'linkedin' },
-  { label: 'Email', href: 'mailto:hello@example.com', icon: HiOutlineMail, tone: 'email' },
+  { label: 'Email', href: 'https://mail.google.com/mail/?view=cm&fs=1&to=alev46069@gmail.com', icon: HiOutlineMail, tone: 'email' },
 ]
 
 function Navbar() {
