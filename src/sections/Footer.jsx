@@ -1,10 +1,36 @@
+import { useState } from 'react'
 import PortfolioAppreciation from '../components/PortfolioAppreciation'
 
-const CONTACT_EMAIL = 'hello@example.com'
+const FORM_NAME = 'contact'
 
 function Footer() {
+  const [submitStatus, setSubmitStatus] = useState('idle')
+
   const handleBackToStart = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+
+    const form = event.currentTarget
+    const formData = new FormData(form)
+    setSubmitStatus('submitting')
+
+    try {
+      const response = await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formData).toString(),
+      })
+
+      if (!response.ok) throw new Error('Form submission failed')
+
+      form.reset()
+      setSubmitStatus('success')
+    } catch {
+      setSubmitStatus('error')
+    }
   }
 
   return (
@@ -29,31 +55,57 @@ function Footer() {
 
         <form
           className="contact-form"
-          action={`mailto:${CONTACT_EMAIL}`}
-          method="post"
-          encType="text/plain"
+          name={FORM_NAME}
+          method="POST"
+          action="/"
+          data-netlify="true"
+          data-netlify-honeypot="bot-field"
+          encType="application/x-www-form-urlencoded"
+          onSubmit={handleSubmit}
         >
+          <input type="hidden" name="form-name" value={FORM_NAME} />
+          <p className="contact-form-honeypot" aria-hidden="true">
+            <label htmlFor="contact-bot-field">
+              Bu alanı boş bırakın
+              <input id="contact-bot-field" name="bot-field" tabIndex="-1" autoComplete="off" />
+            </label>
+          </p>
+
           <div className="contact-form-heading">
             <span>Yeni bir proje mi var?</span>
             <strong>Mesaj bırakabilirsiniz</strong>
           </div>
 
-          <label>
+          <label htmlFor="contact-name">
             <span>01 / Adınız</span>
-            <input type="text" name="name" autoComplete="name" placeholder="Adınızı yazın" required />
+            <input id="contact-name" type="text" name="name" autoComplete="name" placeholder="Adınızı yazın" required />
           </label>
 
-          <label>
+          <label htmlFor="contact-email">
             <span>02 / Email</span>
-            <input type="email" name="email" autoComplete="email" placeholder="email@adresiniz.com" required />
+            <input id="contact-email" type="email" name="email" autoComplete="email" placeholder="email@adresiniz.com" required />
           </label>
 
-          <label>
+          <label htmlFor="contact-message">
             <span>03 / Mesaj</span>
-            <textarea name="message" rows="3" placeholder="Projenizden kısaca bahsedin" required />
+            <textarea id="contact-message" name="message" rows="3" placeholder="Projenizden kısaca bahsedin" required />
           </label>
 
-          <button type="submit"><span>Mesajı gönder</span><i aria-hidden="true">↗</i></button>
+          <button type="submit" disabled={submitStatus === 'submitting'}>
+            <span>{submitStatus === 'submitting' ? 'Gönderiliyor...' : 'Mesajı gönder'}</span>
+            <i aria-hidden="true">↗</i>
+          </button>
+
+          {submitStatus === 'success' && (
+            <p className="contact-form-status is-success" role="status">
+              Mesajınız gönderildi. En kısa sürede dönüş yapacağım.
+            </p>
+          )}
+          {submitStatus === 'error' && (
+            <p className="contact-form-status is-error" role="alert">
+              Mesaj gönderilemedi. Lütfen bağlantınızı kontrol edip tekrar deneyin.
+            </p>
+          )}
         </form>
       </div>
 
