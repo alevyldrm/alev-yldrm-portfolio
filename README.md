@@ -2,6 +2,8 @@
 
 React ve Vite ile geliştirilmiş, yatay kaydırma deneyimine sahip kişisel frontend developer portfolyo projesi.
 
+[Canlı Siteyi Görüntüle →](https://alevyldrm.com/)
+
 ## Özellikler
 
 - Masaüstü cihazlarda dikey scroll ile kontrol edilen yatay bölüm akışı
